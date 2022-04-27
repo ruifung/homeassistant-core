@@ -85,6 +85,10 @@ DOUBLE_TYPE = (
 )
 
 
+class UnsupportedDialect(Exception):
+    """The dialect or its version is not supported."""
+
+
 class Events(Base):  # type: ignore[misc,valid-type]
     """Event history data."""
 

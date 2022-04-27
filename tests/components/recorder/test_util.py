@@ -11,7 +11,7 @@ from sqlalchemy.sql.elements import TextClause
 from homeassistant.components import recorder
 from homeassistant.components.recorder import util
 from homeassistant.components.recorder.const import DATA_INSTANCE, SQLITE_URL_PREFIX
-from homeassistant.components.recorder.models import RecorderRuns
+from homeassistant.components.recorder.models import RecorderRuns, UnsupportedDialect
 from homeassistant.components.recorder.util import (
     end_incomplete_runs,
     is_second_sunday,
@@ -164,10 +164,8 @@ async def test_last_run_was_recently_clean(
 @pytest.mark.parametrize(
     "mysql_version, db_supports_row_number",
     [
-        ("10.2.0-MariaDB", True),
-        ("10.1.0-MariaDB", False),
-        ("5.8.0", True),
-        ("5.7.0", False),
+        ("10.3.0-MariaDB", True),
+        ("8.0.0", True),
     ],
 )
 def test_setup_connection_for_dialect_mysql(mysql_version, db_supports_row_number):
@@ -203,8 +201,7 @@ def test_setup_connection_for_dialect_mysql(mysql_version, db_supports_row_numbe
 @pytest.mark.parametrize(
     "sqlite_version, db_supports_row_number",
     [
-        ("3.25.0", True),
-        ("3.24.0", False),
+        ("3.31.0", True),
     ],
 )
 def test_setup_connection_for_dialect_sqlite(sqlite_version, db_supports_row_number):
@@ -263,7 +260,7 @@ def test_setup_connection_for_dialect_sqlite(sqlite_version, db_supports_row_num
         ),
     ],
 )
-def test_warn_outdated_mysql(caplog, mysql_version, message):
+def test_fail_outdated_mysql(caplog, mysql_version, message):
     """Test setting up the connection for an outdated mysql version."""
     instance_mock = MagicMock(_db_supports_row_number=True)
     execute_args = []
@@ -284,7 +281,10 @@ def test_warn_outdated_mysql(caplog, mysql_version, message):
 
     dbapi_connection = MagicMock(cursor=_make_cursor_mock)
 
-    util.setup_connection_for_dialect(instance_mock, "mysql", dbapi_connection, True)
+    with pytest.raises(UnsupportedDialect):
+        util.setup_connection_for_dialect(
+            instance_mock, "mysql", dbapi_connection, True
+        )
 
     assert message in caplog.text
 
@@ -339,7 +339,7 @@ def test_supported_mysql(caplog, mysql_version):
         ),
     ],
 )
-def test_warn_outdated_pgsql(caplog, pgsql_version, message):
+def test_fail_outdated_pgsql(caplog, pgsql_version, message):
     """Test setting up the connection for an outdated PostgreSQL version."""
     instance_mock = MagicMock(_db_supports_row_number=True)
     execute_args = []
@@ -360,9 +360,10 @@ def test_warn_outdated_pgsql(caplog, pgsql_version, message):
 
     dbapi_connection = MagicMock(cursor=_make_cursor_mock)
 
-    util.setup_connection_for_dialect(
-        instance_mock, "postgresql", dbapi_connection, True
-    )
+    with pytest.raises(UnsupportedDialect):
+        util.setup_connection_for_dialect(
+            instance_mock, "postgresql", dbapi_connection, True
+        )
 
     assert message in caplog.text
 
@@ -416,7 +417,7 @@ def test_supported_pgsql(caplog, pgsql_version):
         ),
     ],
 )
-def test_warn_outdated_sqlite(caplog, sqlite_version, message):
+def test_fail_outdated_sqlite(caplog, sqlite_version, message):
     """Test setting up the connection for an outdated sqlite version."""
     instance_mock = MagicMock(_db_supports_row_number=True)
     execute_args = []
@@ -437,7 +438,10 @@ def test_warn_outdated_sqlite(caplog, sqlite_version, message):
 
     dbapi_connection = MagicMock(cursor=_make_cursor_mock)
 
-    util.setup_connection_for_dialect(instance_mock, "sqlite", dbapi_connection, True)
+    with pytest.raises(UnsupportedDialect):
+        util.setup_connection_for_dialect(
+            instance_mock, "sqlite", dbapi_connection, True
+        )
 
     assert message in caplog.text
 
@@ -488,7 +492,10 @@ def test_warn_unsupported_dialect(caplog, dialect, message):
     instance_mock = MagicMock()
     dbapi_connection = MagicMock()
 
-    util.setup_connection_for_dialect(instance_mock, dialect, dbapi_connection, True)
+    with pytest.raises(UnsupportedDialect):
+        util.setup_connection_for_dialect(
+            instance_mock, dialect, dbapi_connection, True
+        )
 
     assert message in caplog.text
 

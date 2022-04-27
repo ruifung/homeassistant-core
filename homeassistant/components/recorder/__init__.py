@@ -84,6 +84,7 @@ from .models import (
     StateAttributes,
     States,
     StatisticsRuns,
+    UnsupportedDialect,
     process_timestamp,
 )
 from .pool import POOL_SIZE, MutexPool, RecorderPool
@@ -1058,6 +1059,8 @@ class Recorder(threading.Thread):
             try:
                 self._setup_connection()
                 return migration.get_schema_version(self)
+            except UnsupportedDialect:
+                break
             except Exception as err:  # pylint: disable=broad-except
                 _LOGGER.exception(
                     "Error during connection setup: %s (retrying in %s seconds)",
