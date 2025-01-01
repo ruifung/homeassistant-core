@@ -12,6 +12,7 @@ import site
 from subprocess import PIPE, Popen
 import sys
 from urllib.parse import urlparse
+import site
 
 from packaging.requirements import InvalidRequirement, Requirement
 
@@ -124,7 +125,7 @@ def install_package(
     if constraints is not None:
         args += ["--constraint", constraints]
     if target:
-        abs_target = os.path.abspath(target)
+        abs_target = site.getsitepackages([os.path.abspath(target)])
         args += ["--target", abs_target]
     elif (
         not is_virtual_env()
